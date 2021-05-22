@@ -6,6 +6,7 @@ import re
 import threading
 import queue
 from mcpi import minecraft
+from importlib import import_module
 
 print("Welcome to Minecraft Pi Forge.")
 abs_path=os.path.dirname(os.path.abspath(__file__))
@@ -18,34 +19,32 @@ def main():
 	re2=re.compile(r"disable .+")
 	re3=re.compile(r"start .+")
 	re4=re.compile(r"stop .+")
+	lists={'module':{},'queue':{},'thread':{}}
 
 	running=[]
 
 	for m in mod_enabled:
-		exec("import mods."+m+".main")
-		exec("q"+m+"=queue.Queue()")
-		exec("q"+m+".put(1)")
-		exec("t"+m+"=threading.Thread(target=mods."+m+".main.main,args=(mc,q"+m+",'"+abs_path+"/mods/"+m+"'))")
-		exec("t"+m+".start()")
+		lists['module'][m]=import_module("mods."+m+".main")
+		lists['queue'][m]=queue.Queue()
+		lists['queue'][m].put(1)
+		lists['thread'][m]=threading.Thread(target=lists['module'][m].main,args=(mc,lists['queue'][m],abs_path+"/mods/"+m))
+		lists['thread'][m].start()
 		running.append(m)
 
 
 	while True:
 		cmd=input("> ")
 		if cmd=="exit":
-			for i in running:
-				exec("q"+i+".put(0)")
+			[lists['queue'][i].put(0) for i in running]
 			break
 		elif cmd=="help":
-			print("nd")
+			print("N/A")
 		elif cmd=="list":
 			print("Installed Mods:")
-			for i in mod_list:
-				print(i)
+			[print(i) for i in mod_list]
 		elif cmd=="list-enabled":
 			print("Enabled Mods:")
-			for i in mod_enabled:
-				print(i)
+			[print(i) for i in mod_enabled]
 		elif re1.match(cmd):
 			mod=re1.match(cmd).group().replace("enable ","")
 			if mod in mod_list:
@@ -66,16 +65,16 @@ def main():
 		elif re3.match(cmd):
 			mod=re3.match(cmd).group().replace("start ","")
 			if mod in mod_list:
-				exec("import mods."+mod+".main")
-				exec("q"+mod+"=queue.Queue()")
-				exec("q"+mod+".put(1)")
-				exec("t"+mod+"=threading.Thread(target=mods."+mod+".main.main,args=(mc,q"+mod+",'"+abs_path+"/mods/"+mod+"'))")
-				exec("t"+mod+".start()")
+				lists['module'][mod]=import_module("mods."+mod+".main")
+				lists['queue'][mod]=queue.Queue()
+				lists['queue'][mod].put(1)
+				lists['thread'][mod]=threading.Thread(target=lists['module'][mod].main,args=(mc,lists['queue'][mod],abs_path+"/mods/"+mod)))
+				lists['thread'][mod].start()
 				running.append(mod)
 		elif re4.match(cmd):
 			mod=re4.match(cmd).group().replace("stop ","")
 			if mod in running:
-				exec("q"+mod+".put(0)")
+				lists['queue'][mod].put(0)
 				running.remove(mod)
 	sys.exit()
 
