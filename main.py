@@ -1,10 +1,6 @@
 #!/usr/bin/python3
 
-import os
-import sys
-import re
-import threading
-import queue
+import os, sys, re, json, threading, queue
 from mcpi import minecraft
 from importlib import import_module
 
@@ -13,8 +9,20 @@ abs_path=os.path.dirname(os.path.abspath(__file__))
 
 def main():
 	mod_list=os.listdir(abs_path+"/mods/")
-	mod_enabled=os.listdir(abs_path+"/conf/enabled/")
-	mc=minecraft.Minecraft.create()
+	for mod in mod_list:
+		if not os.path.isdir(abs_path+"/mods/"+mod):
+			mod_list.remove(mod)
+	with open(abs_path+"/conf/mods.json") as f:
+		mod_conf=json.load(f)
+	
+#	mod_enabled=os.listdir(abs_path+"/conf/enabled/")
+	mod_enabled=mod_conf["enabled"]
+
+	try:
+		mc=minecraft.Minecraft.create()
+	except:
+		print("Unable to connect Minecraft.")
+		sys.exit(1)
 	re1=re.compile(r"enable .+")
 	re2=re.compile(r"disable .+")
 	re3=re.compile(r"start .+")
@@ -31,51 +39,71 @@ def main():
 		lists['thread'][m].start()
 		running.append(m)
 
+	print(len(mod_enabled)+" mods are loaded.")
 
 	while True:
-		cmd=input("> ")
+		try:
+			cmd=input("> ")
+		except KeyboardInterrupt:
+			cmd="exit"
+
 		if cmd=="exit":
+			print("Stopping all launched mods...")
 			[lists['queue'][i].put(0) for i in running]
+			[lists['thread'][i].join() for i in running]
+			mod_conf["enabled"]=mod_enabled
+			with open(abs_path+"/conf/mods.json") as f:
+				json.dump(mod_conf,f,indent=4)
 			break
+
 		elif cmd=="help":
 			print("N/A")
+
 		elif cmd=="list":
 			print("Installed Mods:")
 			[print(i) for i in mod_list]
 		elif cmd=="list-enabled":
 			print("Enabled Mods:")
 			[print(i) for i in mod_enabled]
+
 		elif re1.match(cmd):
 			mod=re1.match(cmd).group().replace("enable ","")
 			if mod in mod_list:
 				if not mod in mod_enabled:
-					with open(abs_path+"/conf/enabled/"+mod,"w") as f:
-						f.write(" ")
 					mod_enabled.append(mod)
 			else:
-				print("Mod doesn't exist.")
+				print("Invalid mod name: \""+mod+"\"")
+
 		elif re2.match(cmd):
 			mod=re2.match(cmd).group().replace("disable ","")
 			if mod in mod_list:
 				if mod in mod_enabled:
-					os.remove(abs_path+"/conf/enabled/"+mod)
 					mod_enabled.remove(mod)
 			else:
-				print("Mod doesn't exist.")
+				print("Invalid mod name: \""+mod+"\"")
+
 		elif re3.match(cmd):
 			mod=re3.match(cmd).group().replace("start ","")
 			if mod in mod_list:
-				lists['module'][mod]=import_module("mods."+mod+".main")
-				lists['queue'][mod]=queue.Queue()
-				lists['queue'][mod].put(1)
-				lists['thread'][mod]=threading.Thread(target=lists['module'][mod].main,args=(mc,lists['queue'][mod],abs_path+"/mods/"+mod)))
-				lists['thread'][mod].start()
-				running.append(mod)
+				if not mod in running:
+					lists['module'][mod]=import_module("mods."+mod+".main")
+					lists['queue'][mod]=queue.Queue()
+					lists['queue'][mod].put(1)
+					lists['thread'][mod]=threading.Thread(target=lists['module'][mod].main,args=(mc,lists['queue'][mod],abs_path+"/mods/"+mod)))
+					lists['thread'][mod].start()
+					running.append(mod)
+			else:
+				print("Invalid mod name: \""+mod+"\"")
+
 		elif re4.match(cmd):
 			mod=re4.match(cmd).group().replace("stop ","")
-			if mod in running:
-				lists['queue'][mod].put(0)
-				running.remove(mod)
+			if mod in mod_list:
+				if mod in running:
+					lists['queue'][mod].put(0)
+					running.remove(mod)
+			else:
+				print("Invalid mod name: \""+mod+"\"")
+
 	sys.exit()
 
 
