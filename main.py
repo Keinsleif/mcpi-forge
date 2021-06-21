@@ -5,17 +5,17 @@ from mcpi import minecraft
 from importlib import import_module
 
 print("Welcome to Minecraft Pi Forge.")
-abs_path=os.path.dirname(os.path.abspath(__file__))
+root=os.path.dirname(os.path.abspath(__file__))
 
 def main():
-	mod_list=os.listdir(abs_path+"/mods/")
+	mod_list=os.listdir(root+"/mods/")
 	for mod in mod_list:
-		if not os.path.isdir(abs_path+"/mods/"+mod):
+		if not os.path.isdir(root+"/mods/"+mod):
 			mod_list.remove(mod)
-	with open(abs_path+"/conf/mods.json") as f:
+	with open(root+"/conf/mods.json") as f:
 		mod_conf=json.load(f)
 	
-#	mod_enabled=os.listdir(abs_path+"/conf/enabled/")
+#	mod_enabled=os.listdir(root+"/conf/enabled/")
 	mod_enabled=mod_conf["enabled"]
 
 	try:
@@ -35,7 +35,7 @@ def main():
 		lists['module'][m]=import_module("mods."+m+".main")
 		lists['queue'][m]=queue.Queue()
 		lists['queue'][m].put(1)
-		lists['thread'][m]=threading.Thread(target=lists['module'][m].main,args=(mc,lists['queue'][m],abs_path+"/mods/"+m))
+		lists['thread'][m]=threading.Thread(target=lists['module'][m].main,args=(mc,lists['queue'][m]))
 		lists['thread'][m].start()
 		running.append(m)
 
@@ -52,7 +52,7 @@ def main():
 			[lists['queue'][i].put(0) for i in running]
 			[lists['thread'][i].join() for i in running]
 			mod_conf["enabled"]=mod_enabled
-			with open(abs_path+"/conf/mods.json") as f:
+			with open(root+"/conf/mods.json") as f:
 				json.dump(mod_conf,f,indent=4)
 			break
 
@@ -89,7 +89,7 @@ def main():
 					lists['module'][mod]=import_module("mods."+mod+".main")
 					lists['queue'][mod]=queue.Queue()
 					lists['queue'][mod].put(1)
-					lists['thread'][mod]=threading.Thread(target=lists['module'][mod].main,args=(mc,lists['queue'][mod],abs_path+"/mods/"+mod)))
+					lists['thread'][mod]=threading.Thread(target=lists['module'][mod].main,args=(mc,lists['queue'][mod])))
 					lists['thread'][mod].start()
 					running.append(mod)
 			else:
