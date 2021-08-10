@@ -44,9 +44,7 @@ def main():
 	while True:
 		try:
 			cmd=input("> ")
-		except KeyboardInterrupt:
-			cmd="exit"
-		except EOFError:
+		except (KeyboardInterrupt,EOFError):
 			cmd="exit"
 
 		if cmd=="exit":
