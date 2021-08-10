@@ -28,7 +28,7 @@ def main():
 	re2=re.compile(r"disable .+")
 	re3=re.compile(r"start .+")
 	re4=re.compile(r"stop .+")
-	lists={'module':{},'queue':{},'thread':{}}
+	lists={'module':{},'state':{},'thread':{}}
 
 	running=[]
 
