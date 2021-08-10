@@ -12,6 +12,16 @@ if not os.path.isfile(conf_path):
 	with open(conf_path,"w") as f:
 		f.write("{}")
 
+HELP_MSG="""Commands:
+help			show this message
+list			show available mods
+list-enabled	show enabled mods
+enable MOD		enable mod
+disable MOD		disable mod
+start MOD		start mod
+stop MOD		stop mod
+exit			exit mcpi-forge"""
+
 def main():
 	mod_list=os.listdir(root+"/mods/")
 	for mod in mod_list:
@@ -42,7 +52,8 @@ def main():
 		lists['thread'][m].start()
 		running.append(m)
 
-	print(str(len(mod_enabled))+" mods are loaded.")
+	print(str(len(mod_list))+" mods are loaded.")
+	print(str(len(mod_enabled))+" mods are started.")
 
 	while True:
 		try:
@@ -61,7 +72,7 @@ def main():
 			break
 
 		elif cmd=="help":
-			print("N/A")
+			print(HELP_MSG)
 
 		elif cmd=="list":
 			print("Installed Mods:")
