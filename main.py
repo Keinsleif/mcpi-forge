@@ -8,6 +8,9 @@ from importlib import import_module
 print("Welcome to Minecraft Pi Forge.")
 root=os.path.dirname(os.path.abspath(__file__))
 conf_path=os.path.join(root,"conf","main.json")
+if not os.path.isfile(conf_path):
+	with open(conf_path,"w") as f:
+		f.write("{}")
 
 def main():
 	mod_list=os.listdir(root+"/mods/")
@@ -17,7 +20,7 @@ def main():
 	with open(conf_path,"r") as f:
 		main_conf=json.load(f)
 	
-	mod_enabled=main_conf["enabled"]
+	mod_enabled=main_conf.get("enabled",[])
 
 	try:
 		mc=minecraft.Minecraft.create()
