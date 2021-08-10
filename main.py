@@ -1,22 +1,23 @@
 #!/usr/bin/python3
 
 import os, sys, re, json, threading, queue
+from multiprocessing import Value
 from mcpi import minecraft
 from importlib import import_module
 
 print("Welcome to Minecraft Pi Forge.")
 root=os.path.dirname(os.path.abspath(__file__))
+conf_path=os.path.join(root,"conf","main.json")
 
 def main():
 	mod_list=os.listdir(root+"/mods/")
 	for mod in mod_list:
 		if not os.path.isdir(root+"/mods/"+mod):
 			mod_list.remove(mod)
-	with open(root+"/conf/mods.json") as f:
-		mod_conf=json.load(f)
+	with open(conf_path,"r") as f:
+		main_conf=json.load(f)
 	
-#	mod_enabled=os.listdir(root+"/conf/enabled/")
-	mod_enabled=mod_conf["enabled"]
+	mod_enabled=main_conf["enabled"]
 
 	try:
 		mc=minecraft.Minecraft.create()
@@ -33,9 +34,8 @@ def main():
 
 	for m in mod_enabled:
 		lists['module'][m]=import_module("mods."+m+".main")
-		lists['queue'][m]=queue.Queue()
-		lists['queue'][m].put(1)
-		lists['thread'][m]=threading.Thread(target=lists['module'][m].main,args=(mc,lists['queue'][m]))
+		lists['state'][m]=Value("i",1)
+		lists['thread'][m]=threading.Thread(target=lists['module'][m].main,args=(mc,lists['state'][m]))
 		lists['thread'][m].start()
 		running.append(m)
 
@@ -49,11 +49,11 @@ def main():
 
 		if cmd=="exit":
 			print("Stopping all launched mods...")
-			[lists['queue'][i].put(0) for i in running]
+			[lists['state'][i].value=0 for i in running]
 			[lists['thread'][i].join() for i in running]
-			mod_conf["enabled"]=mod_enabled
-			with open(root+"/conf/mods.json") as f:
-				json.dump(mod_conf,f,indent=4)
+			main_conf["enabled"]=mod_enabled
+			with open(conf_path,"w") as f:
+				json.dump(main_conf,f,indent=4)
 			break
 
 		elif cmd=="help":
@@ -87,9 +87,8 @@ def main():
 			if mod in mod_list:
 				if not mod in running:
 					lists['module'][mod]=import_module("mods."+mod+".main")
-					lists['queue'][mod]=queue.Queue()
-					lists['queue'][mod].put(1)
-					lists['thread'][mod]=threading.Thread(target=lists['module'][mod].main,args=(mc,lists['queue'][mod])))
+					lists['state'][mod]=Value("i",1)
+					lists['thread'][mod]=threading.Thread(target=lists['module'][mod].main,args=(mc,lists['state'][mod]))
 					lists['thread'][mod].start()
 					running.append(mod)
 			else:
@@ -99,7 +98,7 @@ def main():
 			mod=re4.match(cmd).group().replace("stop ","")
 			if mod in mod_list:
 				if mod in running:
-					lists['queue'][mod].put(0)
+					lists['state'][mod].value=0
 					running.remove(mod)
 			else:
 				print("Invalid mod name: \""+mod+"\"")
