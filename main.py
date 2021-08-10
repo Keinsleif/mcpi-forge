@@ -46,10 +46,13 @@ def main():
 			cmd=input("> ")
 		except KeyboardInterrupt:
 			cmd="exit"
+		except EOFError:
+			cmd="exit"
 
 		if cmd=="exit":
 			print("Stopping all launched mods...")
-			[lists['state'][i].value=0 for i in running]
+			for i in running:
+				lists['state'][i].value=0
 			[lists['thread'][i].join() for i in running]
 			main_conf["enabled"]=mod_enabled
 			with open(conf_path,"w") as f:
