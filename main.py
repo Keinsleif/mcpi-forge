@@ -39,7 +39,7 @@ def main():
 		lists['thread'][m].start()
 		running.append(m)
 
-	print(len(mod_enabled)+" mods are loaded.")
+	print(str(len(mod_enabled))+" mods are loaded.")
 
 	while True:
 		try:
